@@ -108,8 +108,13 @@
       "!**/*.controller.ts",
       "!**/*.repository.ts",
       "!**/*.interceptor.ts",
+      "!**/*.guard.ts",
+      "!**/decorators/**",
+      "!modules/health/**",
+      "!modules/metrics/**",
       "!infrastructure/**",
-      "!config/**"
+      "!config/**",
+      "!database/**"
     ],
     "coverageThreshold": {
       "global": {

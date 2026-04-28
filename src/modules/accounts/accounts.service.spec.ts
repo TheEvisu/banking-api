@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 
@@ -34,6 +35,7 @@ describe('AccountsService', () => {
       create: jest.fn(),
       block: jest.fn(),
       lockForUpdate: jest.fn(),
+      list: jest.fn(),
     } as unknown as jest.Mocked<AccountsRepository>;
     persons = { getById: jest.fn(), exists: jest.fn() } as unknown as jest.Mocked<PersonsService>;
 
@@ -103,6 +105,34 @@ describe('AccountsService', () => {
 
       expect(repo.block).toHaveBeenCalledWith('aa', 'reason');
       expect(result).toBe(updated);
+    });
+  });
+
+  describe('list', () => {
+    it('returns a page with hasMore=false when fewer rows than limit are returned', async () => {
+      repo.list.mockResolvedValue([baseAccount({ id: 'a' }), baseAccount({ id: 'b' })]);
+      const result = await service.list({ limit: 5 });
+      expect(result.items).toHaveLength(2);
+      expect(result.hasMore).toBe(false);
+      expect(result.nextCursor).toBeNull();
+    });
+
+    it('emits a nextCursor when more rows exist', async () => {
+      repo.list.mockResolvedValue([
+        baseAccount({ id: 'a' }),
+        baseAccount({ id: 'b' }),
+        baseAccount({ id: 'c' }),
+      ]);
+      const result = await service.list({ limit: 2 });
+      expect(result.items).toHaveLength(2);
+      expect(result.hasMore).toBe(true);
+      expect(result.nextCursor).toEqual(expect.any(String));
+    });
+
+    it('rejects an invalid cursor', async () => {
+      await expect(service.list({ limit: 5, cursor: '!garbage!' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
     });
   });
 });
