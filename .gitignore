@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+build/
+
+# env
+.env
+.env.*
+!.env.example
+*.local.*
+
+# coverage / reports
+coverage/
+.nyc_output/
+
+# logs
+*.log
+npm-debug.log*
+
+# editors
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# scratch
+IMPLEMENTATION_PLAN.md
+TODO.local.md
+
+# tsbuild incremental
+*.tsbuildinfo
