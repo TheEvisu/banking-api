@@ -16,6 +16,8 @@ export const validationSchema = Joi.object({
 
   THROTTLE_TTL_SECONDS: Joi.number().integer().min(1).default(60),
   THROTTLE_LIMIT: Joi.number().integer().min(1).default(100),
+  THROTTLE_ACCOUNT_TTL_SECONDS: Joi.number().integer().min(1).default(60),
+  THROTTLE_ACCOUNT_LIMIT: Joi.number().integer().min(1).default(30),
 
   IDEMPOTENCY_TTL_HOURS: Joi.number().integer().min(1).max(168).default(24),
 

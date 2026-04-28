@@ -16,6 +16,8 @@ export interface AppConfig {
   throttle: {
     ttlSeconds: number;
     limit: number;
+    accountTtlSeconds: number;
+    accountLimit: number;
   };
   idempotency: {
     ttlHours: number;
@@ -41,6 +43,8 @@ export const loadConfiguration = (): AppConfig => ({
   throttle: {
     ttlSeconds: parseInt(process.env.THROTTLE_TTL_SECONDS ?? '60', 10),
     limit: parseInt(process.env.THROTTLE_LIMIT ?? '100', 10),
+    accountTtlSeconds: parseInt(process.env.THROTTLE_ACCOUNT_TTL_SECONDS ?? '60', 10),
+    accountLimit: parseInt(process.env.THROTTLE_ACCOUNT_LIMIT ?? '30', 10),
   },
   idempotency: {
     ttlHours: parseInt(process.env.IDEMPOTENCY_TTL_HOURS ?? '24', 10),

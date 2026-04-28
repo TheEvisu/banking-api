@@ -13,7 +13,7 @@ import { Account } from '../../accounts/entities/account.entity';
 export type TransactionType = 'deposit' | 'withdrawal';
 
 @Entity({ name: 'transactions' })
-@Index('IDX_transactions_account_created', ['accountId', 'createdAt'])
+@Index('IDX_transactions_account_created_id', ['accountId', 'createdAt', 'id'])
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

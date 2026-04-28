@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiHeader,
@@ -12,6 +22,7 @@ import {
   IdempotencyKey,
 } from '../../common/decorators/idempotency-key.decorator';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
+import { AccountThrottlerGuard } from '../../common/throttling/account-throttler.guard';
 
 import { StatementQueryDto } from './dto/statement-query.dto';
 import { TransactionAmountDto } from './dto/transaction-amount.dto';
@@ -25,6 +36,7 @@ export class TransactionsController {
 
   @Post(':id/deposit')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(AccountThrottlerGuard)
   @ApiOperation({ summary: 'Credit an account' })
   @ApiHeader({ name: IDEMPOTENCY_HEADER, required: false })
   @ApiCreatedResponse({ type: TransactionResponseDto })
@@ -44,6 +56,7 @@ export class TransactionsController {
 
   @Post(':id/withdraw')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(AccountThrottlerGuard)
   @ApiOperation({ summary: 'Debit an account' })
   @ApiHeader({ name: IDEMPOTENCY_HEADER, required: false })
   @ApiCreatedResponse({ type: TransactionResponseDto })
