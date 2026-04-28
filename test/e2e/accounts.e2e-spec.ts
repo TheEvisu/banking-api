@@ -1,7 +1,7 @@
 import request from 'supertest';
 
-import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
 import { buildPerson } from '../fixtures/builders';
+import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
 
 describe('Accounts (e2e)', () => {
   let handle: TestHandle;

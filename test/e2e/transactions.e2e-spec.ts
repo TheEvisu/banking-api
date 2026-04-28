@@ -1,7 +1,7 @@
 import request from 'supertest';
 
-import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
 import { buildAccount, buildPerson } from '../fixtures/builders';
+import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
 
 describe('Transactions (e2e)', () => {
   let handle: TestHandle;
@@ -18,7 +18,9 @@ describe('Transactions (e2e)', () => {
     await resetState(handle);
   });
 
-  const seedAccount = async (overrides: Parameters<typeof buildAccount>[2] = {}): Promise<string> => {
+  const seedAccount = async (
+    overrides: Parameters<typeof buildAccount>[2] = {},
+  ): Promise<string> => {
     const person = await buildPerson(handle.dataSource);
     const account = await buildAccount(handle.dataSource, person.id, overrides);
     return account.id;

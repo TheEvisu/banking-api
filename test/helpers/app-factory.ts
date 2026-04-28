@@ -42,6 +42,8 @@ export async function createTestApp(): Promise<TestHandle> {
 }
 
 export async function resetState(handle: TestHandle): Promise<void> {
-  await handle.dataSource.query('TRUNCATE transactions, accounts, persons RESTART IDENTITY CASCADE');
+  await handle.dataSource.query(
+    'TRUNCATE transactions, accounts, persons RESTART IDENTITY CASCADE',
+  );
   await handle.redis.flushdb();
 }

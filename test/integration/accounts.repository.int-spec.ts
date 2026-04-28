@@ -1,7 +1,6 @@
-import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
-import { buildPerson } from '../fixtures/builders';
-
 import { AccountsRepository } from '../../src/modules/accounts/accounts.repository';
+import { buildPerson } from '../fixtures/builders';
+import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
 
 describe('AccountsRepository (integration)', () => {
   let handle: TestHandle;

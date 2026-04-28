@@ -1,7 +1,7 @@
 import { InsufficientFundsError } from '../../src/common/errors';
 import { TransactionsService } from '../../src/modules/transactions/transactions.service';
-import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
 import { buildAccount, buildPerson } from '../fixtures/builders';
+import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
 
 describe('TransactionsService (integration)', () => {
   let handle: TestHandle;
@@ -45,10 +45,9 @@ describe('TransactionsService (integration)', () => {
     expect(successes).toBe(50);
     expect(failures).toBe(50);
 
-    const updated = await handle.dataSource.query(
-      'SELECT balance FROM accounts WHERE id = $1',
-      [account.id],
-    );
+    const updated = await handle.dataSource.query('SELECT balance FROM accounts WHERE id = $1', [
+      account.id,
+    ]);
     expect(updated[0].balance).toBe('0.0000');
   }, 30000);
 

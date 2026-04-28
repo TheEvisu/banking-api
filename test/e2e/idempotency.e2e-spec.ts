@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 
 import request from 'supertest';
 
-import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
 import { buildAccount, buildPerson } from '../fixtures/builders';
+import { TestHandle, createTestApp, resetState } from '../helpers/app-factory';
 
 describe('Idempotency (e2e)', () => {
   let handle: TestHandle;
