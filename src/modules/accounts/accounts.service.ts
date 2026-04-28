@@ -34,6 +34,7 @@ export class AccountsService {
   }
 
   async getById(id: string): Promise<Account> {
+    // TODO: revisit when introducing auth — check that the caller owns this account
     const account = await this.repo.findById(id);
     if (!account) {
       throw new AccountNotFoundError(id);
