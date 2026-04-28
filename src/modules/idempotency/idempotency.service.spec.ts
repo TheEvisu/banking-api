@@ -36,27 +36,48 @@ describe('IdempotencyService', () => {
     );
   });
 
-  it('reports pending while a sentinel is held', async () => {
-    redis.get.mockResolvedValue('__pending__');
-    await expect(service.getStored('k')).resolves.toBe('pending');
+  describe('start', () => {
+    it('returns acquired on first call', async () => {
+      redis.setNxEx.mockResolvedValue(true);
+      const result = await service.start('k', 'h1');
+      expect(result).toEqual({ state: 'acquired' });
+    });
+
+    it('returns pending when the same hash is in flight', async () => {
+      redis.setNxEx.mockResolvedValue(false);
+      redis.get.mockResolvedValue(JSON.stringify({ phase: 'pending', hash: 'h1' }));
+      const result = await service.start('k', 'h1');
+      expect(result).toEqual({ state: 'pending' });
+    });
+
+    it('returns replay when the same hash already completed', async () => {
+      redis.setNxEx.mockResolvedValue(false);
+      redis.get.mockResolvedValue(
+        JSON.stringify({ phase: 'done', hash: 'h1', status: 201, body: { id: 'x' } }),
+      );
+      const result = await service.start('k', 'h1');
+      expect(result).toEqual({ state: 'replay', status: 201, body: { id: 'x' } });
+    });
+
+    it('returns mismatch when the stored hash differs', async () => {
+      redis.setNxEx.mockResolvedValue(false);
+      redis.get.mockResolvedValue(JSON.stringify({ phase: 'pending', hash: 'other' }));
+      const result = await service.start('k', 'h1');
+      expect(result).toEqual({ state: 'mismatch' });
+    });
   });
 
-  it('returns parsed cached payload', async () => {
-    redis.get.mockResolvedValue(JSON.stringify({ status: 201, body: { ok: true } }));
-    await expect(service.getStored('k')).resolves.toEqual({ status: 201, body: { ok: true } });
-  });
-
-  it('returns null on missing key', async () => {
-    redis.get.mockResolvedValue(null);
-    await expect(service.getStored('k')).resolves.toBeNull();
-  });
-
-  it('stores a serialized response', async () => {
-    await service.store('k', 200, { ok: true });
+  it('store() writes a done payload with TTL', async () => {
+    await service.store('k', 'h1', 200, { ok: true });
     expect(redis.setEx).toHaveBeenCalledWith(
       'k',
-      JSON.stringify({ status: 200, body: { ok: true } }),
+      JSON.stringify({ phase: 'done', hash: 'h1', status: 200, body: { ok: true } }),
       3600,
     );
+  });
+
+  it('release() drops the key', async () => {
+    await service.release('k');
+    expect(redis.del).toHaveBeenCalledWith('k');
   });
 });

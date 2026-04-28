@@ -3,11 +3,9 @@ import { Request, Response } from 'express';
 import { Observable, from, of, switchMap, tap } from 'rxjs';
 
 import { IDEMPOTENCY_HEADER } from '../../common/decorators/idempotency-key.decorator';
-import {
-  IdempotencyConflictError,
-  IdempotencyUnavailableError,
-} from '../../common/errors/idempotency-conflict.error';
+import { IdempotencyConflictError } from '../../common/errors/idempotency-conflict.error';
 
+import { hashBody } from './body-hash';
 import { IdempotencyService } from './idempotency.service';
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -30,36 +28,36 @@ export class IdempotencyInterceptor implements NestInterceptor {
     if (!idempotencyKey) return next.handle();
 
     const redisKey = this.idempotency.buildKey(req.originalUrl ?? req.url, idempotencyKey);
+    const hash = hashBody(req.body);
 
-    return from(this.idempotency.tryAcquire(redisKey)).pipe(
-      switchMap((acquired) => {
-        if (acquired) {
-          return next.handle().pipe(
-            tap({
-              next: async (body) => {
-                const status = res.statusCode;
-                await this.idempotency.store(redisKey, status, body);
-              },
-              error: async () => {
-                await this.idempotency.release(redisKey).catch(() => undefined);
-              },
-            }),
-          );
+    return from(this.idempotency.start(redisKey, hash)).pipe(
+      switchMap((outcome) => {
+        switch (outcome.state) {
+          case 'acquired':
+            return next.handle().pipe(
+              tap({
+                next: async (body) => {
+                  await this.idempotency.store(redisKey, hash, res.statusCode, body);
+                },
+                error: async () => {
+                  await this.idempotency.release(redisKey).catch(() => undefined);
+                },
+              }),
+            );
+          case 'replay':
+            res.status(outcome.status);
+            return of(outcome.body);
+          case 'pending':
+            throw new IdempotencyConflictError(
+              'A request with the same Idempotency-Key is still in flight',
+            );
+          case 'mismatch':
+            throw new IdempotencyConflictError(
+              'Idempotency-Key reused with a different request body',
+            );
         }
-
-        return from(this.idempotency.getStored(redisKey)).pipe(
-          switchMap((stored) => {
-            if (stored === null) {
-              throw new IdempotencyUnavailableError();
-            }
-            if (stored === 'pending') {
-              throw new IdempotencyConflictError();
-            }
-            res.status(stored.status);
-            return of(stored.body);
-          }),
-        );
       }),
     );
   }
+
 }

@@ -44,4 +44,25 @@ describe('Idempotency (e2e)', () => {
       .expect(200);
     expect(balance.body.balance).toBe('100.0000');
   });
+
+  it('rejects same Idempotency-Key with a different payload', async () => {
+    const person = await buildPerson(handle.dataSource);
+    const account = await buildAccount(handle.dataSource, person.id, { balance: '0' });
+    const key = randomUUID();
+
+    await request(handle.app.getHttpServer())
+      .post(`/api/v1/accounts/${account.id}/deposit`)
+      .set('Idempotency-Key', key)
+      .send({ amount: 100 })
+      .expect(201);
+
+    await request(handle.app.getHttpServer())
+      .post(`/api/v1/accounts/${account.id}/deposit`)
+      .set('Idempotency-Key', key)
+      .send({ amount: 999999 })
+      .expect(409)
+      .expect((r) => {
+        expect(r.body.code).toBe('IDEMPOTENCY_CONFLICT');
+      });
+  });
 });
