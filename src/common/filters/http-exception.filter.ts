@@ -30,6 +30,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const requestId = (request.headers[REQUEST_ID_HEADER] as string) ?? '';
 
+    if (this.isTerminusReport(exception)) {
+      const status = (exception as HttpException).getStatus();
+      const body = (exception as HttpException).getResponse() as Record<string, unknown>;
+      response.status(status).json({ ...body, requestId });
+      return;
+    }
+
     const body = this.buildBody(exception, requestId);
 
     if (body.statusCode >= 500) {
@@ -39,6 +46,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     response.status(body.statusCode).json(body);
+  }
+
+  private isTerminusReport(exception: unknown): boolean {
+    if (!(exception instanceof HttpException)) return false;
+    const res = exception.getResponse();
+    if (typeof res !== 'object' || res === null) return false;
+    const record = res as Record<string, unknown>;
+    return 'details' in record && 'info' in record && 'error' in record && 'status' in record;
   }
 
   private buildBody(exception: unknown, requestId: string): ErrorBody {

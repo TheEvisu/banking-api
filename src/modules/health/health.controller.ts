@@ -9,6 +9,8 @@ import {
 
 import { RedisService } from '../../infrastructure/redis/redis.service';
 
+import { MigrationHealthIndicator } from './migration.indicator';
+
 @ApiTags('Health')
 @Controller({ path: 'health', version: '1' })
 export class HealthController {
@@ -16,6 +18,7 @@ export class HealthController {
     private readonly health: HealthCheckService,
     private readonly db: TypeOrmHealthIndicator,
     private readonly redis: RedisService,
+    private readonly migrations: MigrationHealthIndicator,
   ) {}
 
   @Get()
@@ -32,6 +35,7 @@ export class HealthController {
         const ok = await this.redis.ping();
         return { redis: { status: ok ? 'up' : 'down' } };
       },
+      () => this.migrations.check(),
     ]);
   }
 }
