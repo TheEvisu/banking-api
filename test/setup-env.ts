@@ -1,0 +1,13 @@
+process.env.NODE_ENV = 'test';
+process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'warn';
+process.env.DB_HOST = process.env.DB_HOST ?? 'localhost';
+process.env.DB_PORT = process.env.DB_PORT ?? '55432';
+process.env.DB_USER = process.env.DB_USER ?? 'banking';
+process.env.DB_PASSWORD = process.env.DB_PASSWORD ?? 'banking_test';
+process.env.DB_NAME = process.env.DB_NAME ?? 'banking_test';
+process.env.REDIS_HOST = process.env.REDIS_HOST ?? 'localhost';
+process.env.REDIS_PORT = process.env.REDIS_PORT ?? '56379';
+process.env.THROTTLE_LIMIT = process.env.THROTTLE_LIMIT ?? '10000';
+process.env.THROTTLE_TTL_SECONDS = process.env.THROTTLE_TTL_SECONDS ?? '60';
+process.env.IDEMPOTENCY_TTL_HOURS = process.env.IDEMPOTENCY_TTL_HOURS ?? '1';
+process.env.CORS_ORIGINS = process.env.CORS_ORIGINS ?? '';
