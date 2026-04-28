@@ -12,10 +12,7 @@ export class AccountsRepository {
     return this.repo.findOne({ where: { id } });
   }
 
-  async create(input: {
-    personId: string;
-    dailyWithdrawalLimit: string;
-  }): Promise<Account> {
+  async create(input: { personId: string; dailyWithdrawalLimit: string }): Promise<Account> {
     const result = await this.repo
       .createQueryBuilder()
       .insert()
@@ -63,5 +60,4 @@ export class AccountsRepository {
     );
     return this.findById(id);
   }
-
 }

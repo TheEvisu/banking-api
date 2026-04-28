@@ -11,6 +11,7 @@ import {
 import { formatMoney, toMoney } from '../../common/money/money';
 import { AccountsRepository } from '../accounts/accounts.repository';
 import { Account } from '../accounts/entities/account.entity';
+import { MetricsService } from '../metrics/metrics.service';
 
 import { decodeCursor, encodeCursor } from './cursor';
 import { StatementEntryDto, StatementResponseDto } from './dto/transaction-response.dto';
@@ -42,6 +43,7 @@ export class TransactionsService {
     private readonly dataSource: DataSource,
     private readonly txRepo: TransactionsRepository,
     private readonly accountsRepo: AccountsRepository,
+    private readonly metrics: MetricsService,
   ) {}
 
   async deposit(input: MutateInput): Promise<Transaction> {
@@ -69,7 +71,7 @@ export class TransactionsService {
     const amount = toMoney(input.amount);
 
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      const tx = await this.dataSource.transaction(async (manager) => {
         const account = await this.accountsRepo.lockForUpdate(manager, input.accountId);
         if (!account) throw new AccountNotFoundError(input.accountId);
         if (account.isBlocked) throw new AccountBlockedError(account.id);
@@ -105,6 +107,8 @@ export class TransactionsService {
 
         return tx;
       });
+      this.metrics.recordTransaction(type, 'success');
+      return tx;
     } catch (err) {
       if (
         err instanceof QueryFailedError &&
@@ -115,8 +119,12 @@ export class TransactionsService {
           input.accountId,
           input.idempotencyKey,
         );
-        if (existing) return existing;
+        if (existing) {
+          this.metrics.recordTransaction(type, 'success');
+          return existing;
+        }
       }
+      this.metrics.recordTransaction(type, 'failure');
       throw err;
     }
   }

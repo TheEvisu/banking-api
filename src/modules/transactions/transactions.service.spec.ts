@@ -10,6 +10,7 @@ import {
 } from '../../common/errors';
 import { AccountsRepository } from '../accounts/accounts.repository';
 import { Account } from '../accounts/entities/account.entity';
+import { MetricsService } from '../metrics/metrics.service';
 
 import { Transaction } from './entities/transaction.entity';
 import { TransactionsRepository } from './transactions.repository';
@@ -79,12 +80,15 @@ const setup = async (): Promise<{ service: TransactionsService; mocks: Mocks }> 
     findById: jest.fn(),
   } as unknown as jest.Mocked<AccountsRepository>;
 
+  const metrics = { recordTransaction: jest.fn() } as unknown as MetricsService;
+
   const module = await Test.createTestingModule({
     providers: [
       TransactionsService,
       { provide: DataSource, useValue: dataSource },
       { provide: TransactionsRepository, useValue: txRepo },
       { provide: AccountsRepository, useValue: accountsRepo },
+      { provide: MetricsService, useValue: metrics },
     ],
   }).compile();
 

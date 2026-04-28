@@ -45,11 +45,7 @@ export class IdempotencyService {
 
   async start(redisKey: string, hash: string): Promise<StartResult> {
     const pending: PendingEntry = { phase: 'pending', hash };
-    const acquired = await this.redis.setNxEx(
-      redisKey,
-      JSON.stringify(pending),
-      LOCK_TTL_SECONDS,
-    );
+    const acquired = await this.redis.setNxEx(redisKey, JSON.stringify(pending), LOCK_TTL_SECONDS);
     if (acquired) return { state: 'acquired' };
 
     const stored = await this.read(redisKey);

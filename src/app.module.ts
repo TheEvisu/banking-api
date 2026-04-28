@@ -13,6 +13,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdempotencyModule } from './modules/idempotency/idempotency.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 import { PersonsModule } from './modules/persons/persons.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 
@@ -37,6 +38,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module';
       },
     }),
     RedisModule,
+    MetricsModule,
     IdempotencyModule,
     PersonsModule,
     AccountsModule,
