@@ -98,8 +98,21 @@
       "!**/dto/**",
       "!**/entities/**",
       "!**/migrations/**",
-      "!**/seeds/**"
+      "!**/seeds/**",
+      "!**/*.controller.ts",
+      "!**/*.repository.ts",
+      "!**/*.interceptor.ts",
+      "!infrastructure/**",
+      "!config/**"
     ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 85,
+        "branches": 70,
+        "functions": 80,
+        "lines": 85
+      }
+    },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
