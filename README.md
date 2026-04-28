@@ -22,8 +22,7 @@ cd banking-api
 cp .env.example .env
 
 docker compose up -d postgres redis
-docker compose run --rm api npm run migration:run
-docker compose run --rm api npm run seed
+docker compose run --rm api npm run db:setup
 docker compose up -d api
 ```
 
@@ -39,8 +38,7 @@ Postman collection's first request).
 docker compose up -d postgres redis
 npm install
 cp .env.example .env
-npm run migration:run
-npm run seed
+npm run db:setup
 npm run start:dev
 ```
 
@@ -82,6 +80,7 @@ npm run migration:generate -- src/database/migrations/<name>
 npm run migration:run
 npm run migration:revert
 npm run seed
+npm run db:setup          # migration:run && seed
 ```
 
 ## API at a glance
@@ -97,6 +96,7 @@ Base path: `/api/v1`. Full spec at `/api/docs`.
 - `GET /accounts/:id/statement?from=&to=&limit=&cursor=` — transaction history
 - `GET /persons/:id` — read seeded person
 - `GET /health` and `GET /health/ready`
+- `GET /metrics` — Prometheus exposition (HTTP histogram + transaction counters)
 
 All mutating endpoints accept an optional `Idempotency-Key` header. Replays return the
 original response (status + body) for `IDEMPOTENCY_TTL_HOURS` hours. The same key is
