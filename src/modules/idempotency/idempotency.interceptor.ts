@@ -1,12 +1,15 @@
 import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { Observable, from, of, switchMap, tap } from 'rxjs';
+import { Observable, defer, from, of, switchMap, tap, throwError } from 'rxjs';
 
 import { IDEMPOTENCY_HEADER } from '../../common/decorators/idempotency-key.decorator';
-import { IdempotencyConflictError } from '../../common/errors/idempotency-conflict.error';
+import {
+  IdempotencyConflictError,
+  IdempotencyUnavailableError,
+} from '../../common/errors/idempotency-conflict.error';
 
 import { hashBody } from './body-hash';
-import { IdempotencyService } from './idempotency.service';
+import { IdempotencyService, StartResult } from './idempotency.service';
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -30,17 +33,28 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const redisKey = this.idempotency.buildKey(req.originalUrl ?? req.url, idempotencyKey);
     const hash = hashBody(req.body);
 
-    return from(this.idempotency.start(redisKey, hash)).pipe(
+    return defer(() => from(this.startSafely(redisKey, hash))).pipe(
       switchMap((outcome) => {
+        if (outcome === null) {
+          return throwError(() => new IdempotencyUnavailableError());
+        }
         switch (outcome.state) {
           case 'acquired':
             return next.handle().pipe(
               tap({
-                next: async (body) => {
-                  await this.idempotency.store(redisKey, hash, res.statusCode, body);
+                next: (body) => {
+                  this.idempotency
+                    .store(redisKey, hash, res.statusCode, body)
+                    .catch((err) =>
+                      this.logger.warn({ err, redisKey }, 'idempotency store failed'),
+                    );
                 },
-                error: async () => {
-                  await this.idempotency.release(redisKey).catch(() => undefined);
+                error: () => {
+                  this.idempotency
+                    .release(redisKey)
+                    .catch((err) =>
+                      this.logger.warn({ err, redisKey }, 'idempotency release failed'),
+                    );
                 },
               }),
             );
@@ -48,15 +62,30 @@ export class IdempotencyInterceptor implements NestInterceptor {
             res.status(outcome.status);
             return of(outcome.body);
           case 'pending':
-            throw new IdempotencyConflictError(
-              'A request with the same Idempotency-Key is still in flight',
+            return throwError(
+              () =>
+                new IdempotencyConflictError(
+                  'A request with the same Idempotency-Key is still in flight',
+                ),
             );
           case 'mismatch':
-            throw new IdempotencyConflictError(
-              'Idempotency-Key reused with a different request body',
+            return throwError(
+              () =>
+                new IdempotencyConflictError(
+                  'Idempotency-Key reused with a different request body',
+                ),
             );
         }
       }),
     );
+  }
+
+  private async startSafely(redisKey: string, hash: string): Promise<StartResult | null> {
+    try {
+      return await this.idempotency.start(redisKey, hash);
+    } catch (err) {
+      this.logger.warn({ err, redisKey }, 'idempotency layer unavailable');
+      return null;
+    }
   }
 }
