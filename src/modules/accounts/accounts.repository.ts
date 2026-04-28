@@ -60,4 +60,20 @@ export class AccountsRepository {
     );
     return this.findById(id);
   }
+
+  list(opts: { personId?: string; limit: number; cursor?: { ts: Date; id: string } }): Promise<Account[]> {
+    const qb = this.repo.createQueryBuilder('a');
+    if (opts.personId) qb.andWhere('a.person_id = :personId', { personId: opts.personId });
+    if (opts.cursor) {
+      qb.andWhere('(a.created_at, a.id) < (:ts, :id)', {
+        ts: opts.cursor.ts,
+        id: opts.cursor.id,
+      });
+    }
+    return qb
+      .orderBy('a.created_at', 'DESC')
+      .addOrderBy('a.id', 'DESC')
+      .limit(opts.limit + 1)
+      .getMany();
+  }
 }

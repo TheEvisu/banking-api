@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
@@ -7,6 +7,7 @@ import { AccountsService } from './accounts.service';
 import { AccountResponseDto, BalanceResponseDto } from './dto/account-response.dto';
 import { BlockAccountDto } from './dto/block-account.dto';
 import { CreateAccountDto } from './dto/create-account.dto';
+import { AccountsPageDto, ListAccountsQueryDto } from './dto/list-accounts.dto';
 
 @ApiTags('Accounts')
 @Controller({ path: 'accounts', version: '1' })
@@ -19,6 +20,17 @@ export class AccountsController {
   async create(@Body() dto: CreateAccountDto): Promise<AccountResponseDto> {
     const account = await this.accounts.create(dto);
     return AccountResponseDto.from(account);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List accounts (cursor-paginated, filterable by person)' })
+  @ApiOkResponse({ type: AccountsPageDto })
+  list(@Query() query: ListAccountsQueryDto): Promise<AccountsPageDto> {
+    return this.accounts.list({
+      personId: query.personId,
+      limit: query.limit ?? 20,
+      cursor: query.cursor,
+    });
   }
 
   @Get(':id')

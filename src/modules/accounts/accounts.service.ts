@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 import { AccountNotFoundError } from '../../common/errors';
 import { formatMoney } from '../../common/money/money';
+import { decodePageCursor, encodePageCursor } from '../../common/pagination/cursor';
 import { PersonsService } from '../persons/persons.service';
 
 import { AccountsRepository } from './accounts.repository';
+import { AccountResponseDto } from './dto/account-response.dto';
+import { AccountsPageDto } from './dto/list-accounts.dto';
 import { Account } from './entities/account.entity';
 
 const DEFAULT_DAILY_LIMIT = '2000';
@@ -47,5 +50,37 @@ export class AccountsService {
     }
     const updated = await this.repo.block(id, reason);
     return updated ?? existing;
+  }
+
+  async list(input: {
+    personId?: string;
+    limit: number;
+    cursor?: string;
+  }): Promise<AccountsPageDto> {
+    let cursor: { ts: Date; id: string } | undefined;
+    if (input.cursor) {
+      const decoded = decodePageCursor(input.cursor);
+      if (!decoded) {
+        throw new BadRequestException({ message: 'invalid cursor', code: 'VALIDATION_ERROR' });
+      }
+      cursor = { ts: new Date(decoded.ts), id: decoded.id };
+    }
+    const rows = await this.repo.list({
+      personId: input.personId,
+      limit: input.limit,
+      cursor,
+    });
+    const hasMore = rows.length > input.limit;
+    const page = hasMore ? rows.slice(0, input.limit) : rows;
+    const last = page[page.length - 1];
+
+    return {
+      items: page.map(AccountResponseDto.from),
+      nextCursor:
+        hasMore && last
+          ? encodePageCursor({ ts: last.createdAt.toISOString(), id: last.id })
+          : null,
+      hasMore,
+    };
   }
 }
