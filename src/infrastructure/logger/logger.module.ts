@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 
-import { AppConfig } from '../../config/configuration';
 import { REQUEST_ID_HEADER } from '../../common/middleware/request-id.middleware';
+import { AppConfig } from '../../config/configuration';
 
 @Module({
   imports: [

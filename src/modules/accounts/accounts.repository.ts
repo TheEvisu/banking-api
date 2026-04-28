@@ -51,7 +51,7 @@ export class AccountsRepository {
   async nextAccountNumber(): Promise<string> {
     const result = await this.repo
       .createQueryBuilder('a')
-      .select("COALESCE(MAX(CAST(a.account_number AS bigint)), 0)", 'max')
+      .select('COALESCE(MAX(CAST(a.account_number AS bigint)), 0)', 'max')
       .getRawOne<{ max: string }>();
     const next = BigInt(result?.max ?? '0') + 1n;
     return next.toString().padStart(7, '0');

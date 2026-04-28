@@ -23,9 +23,7 @@ interface ListOptions {
 
 @Injectable()
 export class TransactionsRepository {
-  constructor(
-    @InjectRepository(Transaction) private readonly repo: Repository<Transaction>,
-  ) {}
+  constructor(@InjectRepository(Transaction) private readonly repo: Repository<Transaction>) {}
 
   async insertWithManager(manager: EntityManager, input: InsertInput): Promise<Transaction> {
     const entity = manager.create(Transaction, {

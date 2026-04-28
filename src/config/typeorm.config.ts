@@ -3,7 +3,9 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 import { AppConfig } from './configuration';
 
-export const buildTypeOrmOptions = (config: ConfigService<AppConfig, true>): TypeOrmModuleOptions => {
+export const buildTypeOrmOptions = (
+  config: ConfigService<AppConfig, true>,
+): TypeOrmModuleOptions => {
   const db = config.get('db', { infer: true });
   return {
     type: 'postgres',

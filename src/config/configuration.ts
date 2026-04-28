@@ -45,5 +45,8 @@ export const loadConfiguration = (): AppConfig => ({
   idempotency: {
     ttlHours: parseInt(process.env.IDEMPOTENCY_TTL_HOURS ?? '24', 10),
   },
-  corsOrigins: (process.env.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+  corsOrigins: (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
 });

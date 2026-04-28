@@ -5,10 +5,7 @@ import { IdempotencyInterceptor } from './idempotency.interceptor';
 import { IdempotencyService } from './idempotency.service';
 
 @Module({
-  providers: [
-    IdempotencyService,
-    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
-  ],
+  providers: [IdempotencyService, { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor }],
   exports: [IdempotencyService],
 })
 export class IdempotencyModule {}

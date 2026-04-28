@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-import { REQUEST_ID_HEADER } from '../middleware/request-id.middleware';
 import { DomainError } from '../errors/domain.error';
+import { REQUEST_ID_HEADER } from '../middleware/request-id.middleware';
 
 interface ErrorBody {
   statusCode: number;
@@ -61,7 +61,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const message =
         typeof res === 'string'
           ? res
-          : ((res as Record<string, unknown>).message as string | string[]) ?? exception.message;
+          : (((res as Record<string, unknown>).message as string | string[]) ?? exception.message);
       const code = (res as { code?: string }).code ?? this.codeFromStatus(status);
       return {
         statusCode: status,
