@@ -1,5 +1,5 @@
-import request from 'supertest';
 import { Redis } from 'ioredis';
+import request from 'supertest';
 
 import { REDIS_CLIENT } from '../../src/infrastructure/redis/redis.service';
 import { buildAccount, buildPerson } from '../fixtures/builders';

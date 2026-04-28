@@ -51,8 +51,6 @@ describe('Listing endpoints (e2e)', () => {
   });
 
   it('rejects an invalid cursor', async () => {
-    await request(handle.app.getHttpServer())
-      .get('/api/v1/persons?cursor=not-base64')
-      .expect(400);
+    await request(handle.app.getHttpServer()).get('/api/v1/persons?cursor=not-base64').expect(400);
   });
 });

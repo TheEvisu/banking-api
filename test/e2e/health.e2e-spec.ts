@@ -36,20 +36,15 @@ describe('Health (e2e)', () => {
 
     await handle.dataSource.query('DELETE FROM migrations WHERE id = $1', [lastMigration[0].id]);
     try {
-      const res = await request(handle.app.getHttpServer())
-        .get('/api/v1/health/ready')
-        .expect(503);
+      const res = await request(handle.app.getHttpServer()).get('/api/v1/health/ready').expect(503);
       expect(res.body.status).toBe('error');
       expect(res.body.details.migrations.status).toBe('down');
-      expect(res.body.details.migrations.applied).not.toBe(
-        res.body.details.migrations.expected,
-      );
+      expect(res.body.details.migrations.applied).not.toBe(res.body.details.migrations.expected);
     } finally {
-      await handle.dataSource.query('INSERT INTO migrations (id, timestamp, name) VALUES ($1, $2, $3)', [
-        lastMigration[0].id,
-        Date.now(),
-        lastMigration[0].name,
-      ]);
+      await handle.dataSource.query(
+        'INSERT INTO migrations (id, timestamp, name) VALUES ($1, $2, $3)',
+        [lastMigration[0].id, Date.now(), lastMigration[0].name],
+      );
     }
   });
 });

@@ -43,7 +43,10 @@ export class RedisService implements OnModuleDestroy {
   /**
    * Atomic INCR + EXPIRE on first hit. Returns (count, ttlSeconds).
    */
-  async incrWithExpire(key: string, windowSeconds: number): Promise<{ count: number; ttl: number }> {
+  async incrWithExpire(
+    key: string,
+    windowSeconds: number,
+  ): Promise<{ count: number; ttl: number }> {
     const pipeline = this.client.multi();
     pipeline.incr(key);
     pipeline.ttl(key);

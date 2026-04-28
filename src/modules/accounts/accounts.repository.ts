@@ -61,7 +61,11 @@ export class AccountsRepository {
     return this.findById(id);
   }
 
-  list(opts: { personId?: string; limit: number; cursor?: { ts: Date; id: string } }): Promise<Account[]> {
+  list(opts: {
+    personId?: string;
+    limit: number;
+    cursor?: { ts: Date; id: string };
+  }): Promise<Account[]> {
     const qb = this.repo.createQueryBuilder('a');
     if (opts.personId) qb.andWhere('a.person_id = :personId', { personId: opts.personId });
     if (opts.cursor) {

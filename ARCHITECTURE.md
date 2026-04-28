@@ -89,18 +89,27 @@ verifies that 100 concurrent $10 withdrawals against a $500 balance produce exac
 
 ## Idempotency
 
-Two layers:
+Three layers:
 
-1. **Redis lock + replay cache.** On a mutating request with `Idempotency-Key`:
-   - `SET idempotency:<path>:<key> {sentinel} NX EX 30` to acquire a lock.
-   - If the lock is taken and the stored value is a payload, replay it.
-   - If the lock is taken and the stored value is the pending sentinel, return 409.
-   - On success, store `{status, body}` with the configured TTL (default 24h).
+1. **Redis lock + replay cache + body hash.** On a mutating request with `Idempotency-Key`:
+   - Compute `hash = sha256(canonical_json(body))`.
+   - `SET idempotency:<path>:<key> {phase: 'pending', hash} NX EX 30` to acquire a lock.
+   - If a stored entry exists and its hash matches:
+     - `phase === 'done'`: replay the cached `{status, body}`.
+     - `phase === 'pending'`: return 409 (still in flight).
+   - If the stored hash differs from the request's, return 409 — the caller reused a key
+     with a different payload, which is almost always a bug.
+   - On success, store `{phase: 'done', hash, status, body}` with the configured TTL.
    - On failure, release the lock so the client can retry.
 2. **DB unique constraint.** `transactions.idempotency_key` is recorded with a partial
    `UNIQUE (account_id, idempotency_key)` index. If Redis is wiped, a duplicate request
    gets caught at the DB layer; the service catches the violation and returns the
    existing row.
+3. **503 fail-closed on Redis outage.** Any error from Redis during `start()` degrades
+   to `IDEMPOTENCY_UNAVAILABLE` (503) for mutating requests that carry a key — better
+   than a non-idempotent retry. Requests without a key fall through to the normal
+   handler. The per-account rate limit guard fails *open* on Redis errors instead, on
+   the principle that legitimate users shouldn't be locked out by infra they can't see.
 
 ## Error envelope
 
@@ -133,28 +142,56 @@ is global so any module can `inject: [ConfigService]`.
 `requestId`. Sensitive headers (`authorization`, `cookie`) are redacted. Bodies are
 not logged on purpose.
 
+## Rate limiting
+
+Two layers:
+
+- **Per-IP**, via `@nestjs/throttler` as the global `APP_GUARD`. Default 100 req per
+  60s, configurable via `THROTTLE_LIMIT` / `THROTTLE_TTL_SECONDS`.
+- **Per-account**, via `AccountThrottlerGuard` attached to deposit and withdraw. Default
+  30 req per 60s per account UUID, configurable via `THROTTLE_ACCOUNT_LIMIT` /
+  `THROTTLE_ACCOUNT_TTL_SECONDS`. Implemented as a Redis `INCR + EXPIRE` so it works
+  across process replicas. On Redis errors the guard fails open with a warn-level log.
+
+Both surface `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`. The
+per-account guard also sets `Retry-After` on 429 responses.
+
+## Observability
+
+- **Logs.** `nestjs-pino`, JSON in production, pretty in dev. Every line carries
+  `requestId`. Sensitive headers (`authorization`, `cookie`) are redacted. Bodies are
+  not logged.
+- **Metrics.** `GET /api/v1/metrics` exposes Prometheus text:
+  - `http_request_duration_seconds` histogram labelled by method/route/status.
+  - `banking_transactions_total{type="deposit"|"withdrawal", outcome="success"|"failure"}`
+    counter recorded after every mutation.
+  - Default Node process metrics (`process_cpu_*`, `nodejs_eventloop_lag_*`, etc.).
+- **Readiness.** `GET /api/v1/health/ready` checks Postgres, Redis and migration drift
+  (latest applied vs `EXPECTED_LATEST_MIGRATION` constant in the binary). Drift returns
+  503 — your orchestrator should refuse to roll a binary forward against an older DB.
+
 ## Testing pyramid
 
 ```
-unit (44 tests, src/**/*.spec.ts)
+unit (50 tests, src/**/*.spec.ts)
   └── pure logic with mocked deps
-integration (11 tests, test/integration/*.int-spec.ts)
+integration (14 tests, test/integration/*.int-spec.ts)
   └── real Postgres + Redis via docker-compose.test.yml
-e2e (20 tests, test/e2e/*.e2e-spec.ts)
+  └── includes 100-vu concurrency stress and a Redis-outage degradation case
+e2e (30 tests, test/e2e/*.e2e-spec.ts)
   └── full Nest app + Supertest, all endpoints
 load (k6, test/load/*.js)
-  └── deposit burst, withdraw contention, mixed traffic — opt-in
+  └── deposit burst, withdraw contention (with replenisher), mixed traffic — opt-in
 ```
 
 ## What I would change if this were going to production
 
-- Move account-number generation off `MAX(...) + 1` to a dedicated Postgres sequence or
-  a separate generator service.
 - Add an authn/z layer (JWT or API key). The DI seam is already there in
   `src/common/`.
-- Replace the per-request idempotency key with one signed by the caller, plus an
-  optional payload hash so accidental key reuse with a different body is detected and
-  rejected.
 - Promote `daily_withdrawal_limit` to an `account_products` table.
 - Run statement reads against a read replica and use `repeatable read` for them.
-- Surface Prometheus metrics — Pino is good for tracing but not for SLOs.
+- Add OpenTelemetry tracing — `requestId` is great for single-service triage but
+  doesn't survive a hop to another service.
+- Convert the `transactions` table into a strict event log and derive `accounts.balance`
+  from a materialised view. The current model is fine at this scale but a real ledger
+  shouldn't keep two sources of truth.
