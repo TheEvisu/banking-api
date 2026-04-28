@@ -5,8 +5,6 @@ import { DataSource } from 'typeorm';
 import { Account } from '../../src/modules/accounts/entities/account.entity';
 import { Person } from '../../src/modules/persons/entities/person.entity';
 
-let counter = 1;
-
 export async function buildPerson(
   ds: DataSource,
   overrides: Partial<Person> = {},
@@ -26,16 +24,32 @@ export async function buildAccount(
   personId: string,
   overrides: Partial<Account> = {},
 ): Promise<Account> {
-  const repo = ds.getRepository(Account);
-  const number = (counter++).toString().padStart(7, '0');
-  const entity = repo.create({
-    personId,
-    accountNumber: overrides.accountNumber ?? number,
-    balance: overrides.balance ?? '0',
-    dailyWithdrawalLimit: overrides.dailyWithdrawalLimit ?? '2000',
-    isBlocked: overrides.isBlocked ?? false,
-    blockedAt: overrides.blockedAt ?? null,
-    blockedReason: overrides.blockedReason ?? null,
+  const result = await ds
+    .createQueryBuilder()
+    .insert()
+    .into(Account)
+    .values({
+      personId,
+      ...(overrides.accountNumber ? { accountNumber: overrides.accountNumber } : {}),
+      balance: overrides.balance ?? '0',
+      dailyWithdrawalLimit: overrides.dailyWithdrawalLimit ?? '2000',
+      isBlocked: overrides.isBlocked ?? false,
+      blockedAt: overrides.blockedAt ?? null,
+      blockedReason: overrides.blockedReason ?? null,
+    })
+    .returning('*')
+    .execute();
+  const row = result.raw[0];
+  return ds.getRepository(Account).create({
+    id: row.id,
+    personId: row.person_id,
+    accountNumber: row.account_number,
+    balance: row.balance,
+    dailyWithdrawalLimit: row.daily_withdrawal_limit,
+    isBlocked: row.is_blocked,
+    blockedAt: row.blocked_at,
+    blockedReason: row.blocked_reason,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   });
-  return repo.save(entity);
 }

@@ -4,6 +4,7 @@ import { EnablePgcrypto1735000000000 } from '../../src/database/migrations/17350
 import { CreatePersons1735000001000 } from '../../src/database/migrations/1735000001000-CreatePersons';
 import { CreateAccounts1735000002000 } from '../../src/database/migrations/1735000002000-CreateAccounts';
 import { CreateTransactions1735000003000 } from '../../src/database/migrations/1735000003000-CreateTransactions';
+import { AccountNumberSequence1735000004000 } from '../../src/database/migrations/1735000004000-AccountNumberSequence';
 
 export async function ensureSchema(): Promise<void> {
   const ds = new DataSource({
@@ -19,6 +20,7 @@ export async function ensureSchema(): Promise<void> {
       CreatePersons1735000001000,
       CreateAccounts1735000002000,
       CreateTransactions1735000003000,
+      AccountNumberSequence1735000004000,
     ],
     synchronize: false,
     logging: false,

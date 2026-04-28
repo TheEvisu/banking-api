@@ -14,19 +14,35 @@ export class AccountsRepository {
 
   async create(input: {
     personId: string;
-    accountNumber: string;
     dailyWithdrawalLimit: string;
   }): Promise<Account> {
-    const entity = this.repo.create({
-      personId: input.personId,
-      accountNumber: input.accountNumber,
-      dailyWithdrawalLimit: input.dailyWithdrawalLimit,
-      balance: '0',
-      isBlocked: false,
-      blockedAt: null,
-      blockedReason: null,
+    const result = await this.repo
+      .createQueryBuilder()
+      .insert()
+      .into(Account)
+      .values({
+        personId: input.personId,
+        dailyWithdrawalLimit: input.dailyWithdrawalLimit,
+        balance: '0',
+        isBlocked: false,
+        blockedAt: null,
+        blockedReason: null,
+      })
+      .returning('*')
+      .execute();
+    const row = result.raw[0];
+    return this.repo.create({
+      id: row.id,
+      personId: row.person_id,
+      accountNumber: row.account_number,
+      balance: row.balance,
+      dailyWithdrawalLimit: row.daily_withdrawal_limit,
+      isBlocked: row.is_blocked,
+      blockedAt: row.blocked_at,
+      blockedReason: row.blocked_reason,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
     });
-    return this.repo.save(entity);
   }
 
   /**
@@ -48,12 +64,4 @@ export class AccountsRepository {
     return this.findById(id);
   }
 
-  async nextAccountNumber(): Promise<string> {
-    const result = await this.repo
-      .createQueryBuilder('a')
-      .select('COALESCE(MAX(CAST(a.account_number AS bigint)), 0)', 'max')
-      .getRawOne<{ max: string }>();
-    const next = BigInt(result?.max ?? '0') + 1n;
-    return next.toString().padStart(7, '0');
-  }
 }

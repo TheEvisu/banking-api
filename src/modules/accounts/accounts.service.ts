@@ -25,10 +25,8 @@ export class AccountsService {
       input.dailyWithdrawalLimit !== undefined
         ? formatMoney(input.dailyWithdrawalLimit)
         : DEFAULT_DAILY_LIMIT;
-    const accountNumber = await this.repo.nextAccountNumber();
     return this.repo.create({
       personId: input.personId,
-      accountNumber,
       dailyWithdrawalLimit: limit,
     });
   }

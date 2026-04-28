@@ -33,7 +33,6 @@ describe('AccountsService', () => {
       findById: jest.fn(),
       create: jest.fn(),
       block: jest.fn(),
-      nextAccountNumber: jest.fn(),
       lockForUpdate: jest.fn(),
     } as unknown as jest.Mocked<AccountsRepository>;
     persons = { getById: jest.fn(), exists: jest.fn() } as unknown as jest.Mocked<PersonsService>;
@@ -51,9 +50,8 @@ describe('AccountsService', () => {
   });
 
   describe('create', () => {
-    it('creates an account using the next number and given limit', async () => {
+    it('creates an account with the given daily limit', async () => {
       persons.getById.mockResolvedValue({ id: 'pp' } as never);
-      repo.nextAccountNumber.mockResolvedValue('0000042');
       const created = baseAccount({ accountNumber: '0000042', dailyWithdrawalLimit: '500.0000' });
       repo.create.mockResolvedValue(created);
 
@@ -61,7 +59,6 @@ describe('AccountsService', () => {
 
       expect(repo.create).toHaveBeenCalledWith({
         personId: 'pp',
-        accountNumber: '0000042',
         dailyWithdrawalLimit: '500.0000',
       });
       expect(result).toBe(created);
@@ -69,7 +66,6 @@ describe('AccountsService', () => {
 
     it('falls back to default daily limit', async () => {
       persons.getById.mockResolvedValue({ id: 'pp' } as never);
-      repo.nextAccountNumber.mockResolvedValue('0000001');
       repo.create.mockResolvedValue(baseAccount());
 
       await service.create({ personId: 'pp' });

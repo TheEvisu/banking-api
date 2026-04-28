@@ -23,38 +23,35 @@ describe('AccountsRepository (integration)', () => {
     const person = await buildPerson(handle.dataSource);
     const created = await repo.create({
       personId: person.id,
-      accountNumber: '0000123',
       dailyWithdrawalLimit: '500',
     });
 
     const found = await repo.findById(created.id);
     expect(found?.id).toBe(created.id);
-    expect(found?.accountNumber).toBe('0000123');
+    expect(found?.accountNumber).toMatch(/^\d{7}$/);
     expect(found?.balance).toBe('0.0000');
+  });
+
+  it('assigns sequential numbers under concurrency without collisions', async () => {
+    const person = await buildPerson(handle.dataSource);
+    const created = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        repo.create({ personId: person.id, dailyWithdrawalLimit: '100' }),
+      ),
+    );
+    const numbers = created.map((a) => a.accountNumber);
+    expect(new Set(numbers).size).toBe(20);
   });
 
   it('rejects negative balance via CHECK constraint', async () => {
     const person = await buildPerson(handle.dataSource);
     const created = await repo.create({
       personId: person.id,
-      accountNumber: '0000124',
       dailyWithdrawalLimit: '500',
     });
 
     await expect(
       handle.dataSource.query('UPDATE accounts SET balance = -1 WHERE id = $1', [created.id]),
     ).rejects.toThrow(/chk_accounts_balance_nonneg/);
-  });
-
-  it('account_number is unique', async () => {
-    const person = await buildPerson(handle.dataSource);
-    await repo.create({
-      personId: person.id,
-      accountNumber: '0000999',
-      dailyWithdrawalLimit: '500',
-    });
-    await expect(
-      repo.create({ personId: person.id, accountNumber: '0000999', dailyWithdrawalLimit: '500' }),
-    ).rejects.toThrow(/duplicate key/);
   });
 });
